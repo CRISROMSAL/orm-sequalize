@@ -4,91 +4,137 @@ import path from "path";
 
 const modelsPath = "./models";
 const controllersPath = "./controllers";
+const controllersBasePath = "./controllers/base"; 
+const servicesPath = "./services"; 
 const routesPath = "./routes";
 
 fs.mkdirSync(controllersPath, { recursive: true });
+fs.mkdirSync(controllersBasePath, { recursive: true });
+fs.mkdirSync(servicesPath, { recursive: true });
 fs.mkdirSync(routesPath, { recursive: true });
 
-// Filtramos solo los modelos (sin incluir init-models.js)
 const models = fs.readdirSync(modelsPath)
   .filter(f => f.endsWith(".js") && f !== "init-models.js");
 
 for (const modelFile of models) {
-  const modelName = path.basename(modelFile, ".js"); // ejemplo: productos
-  const modelClass = modelName.charAt(0).toUpperCase() + modelName.slice(1); // Productos
-  const singular = modelName.replace(/s$/, ""); // producto, cliente, pedido, etc.
+  const modelName = path.basename(modelFile, ".js"); 
+  const modelClass = modelName.charAt(0).toUpperCase() + modelName.slice(1); 
+  const singular = modelName.replace(/s$/, ""); 
 
-  // ---------- CONTROLADOR ----------
-  const controllerContent = `// controllers/${modelName}Controller.js
+// ---------- SERVICIO FINAL ----------
+const serviceContent = `// services/${modelName}Service.js
 import { sequelize } from "../config/db.js";
-import ${modelName} from "../models/${modelFile}";
-import { DataTypes } from "sequelize";
 
-// 🔧 Inicializamos el modelo con la conexión activa
-const ${modelClass.slice(0, -1)} = ${modelName}.init(sequelize, DataTypes);
+export const getAll = async () => await sequelize.models.${modelName}.findAll();
+export const getById = async (id) => await sequelize.models.${modelName}.findByPk(id);
 
-// CREATE
-export const crear${modelClass.slice(0, -1)} = async (req, res) => {
-  try {
-    const nuevo = await ${modelClass.slice(0, -1)}.create(req.body);
-    res.status(201).json(nuevo);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al crear ${singular}", error });
-  }
+export const create = async (data) => {
+    try {
+        console.log("🚀 [DEBUG] Iniciando proceso de creación...");
+        const nuevo = await sequelize.models.${modelName}.create(data);
+        console.log("✅ [DEBUG] Registro creado con éxito.");
+
+        // Intentamos el log con un nombre de modelo flexible
+        const LogTable = sequelize.models.log || sequelize.models.logs;
+        if (LogTable) {
+            await LogTable.create({ log: "Creación en ${modelName} ID: " + nuevo.id });
+            console.log("📜 [DEBUG] Log registrado en la tabla log.");
+        } else {
+            console.log("⚠️ [DEBUG] No se encontró el modelo 'log' para registrar la acción.");
+        }
+        return nuevo;
+    } catch (error) {
+        console.error("❌ [ERROR SERVICIO]:", error.message);
+        throw error;
+    }
 };
 
-// READ (todos)
-export const obtener${modelClass} = async (req, res) => {
+export const update = async (id, data) => {
+    const item = await sequelize.models.${modelName}.findByPk(id);
+    return item ? await item.update(data) : null;
+};
+
+export const remove = async (id) => {
+    const item = await sequelize.models.${modelName}.findByPk(id);
+    if (!item) return null;
+    await item.destroy();
+    return true;
+};
+`;
+  fs.writeFileSync(`${servicesPath}/${modelName}Service.js`, serviceContent);
+
+  // ---------- CONTROLADOR BASE ----------
+  const baseControllerContent = `// controllers/base/${modelName}BaseController.js
+import * as service from "../../services/${modelName}Service.js";
+
+export const getAll = async (req, res) => {
   try {
-    const lista = await ${modelClass.slice(0, -1)}.findAll();
-    res.json(lista);
+    const items = await service.getAll();
+    res.json(items);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ mensaje: "Error al obtener ${modelName}", error });
   }
 };
 
-// READ (uno)
-export const obtener${modelClass.slice(0, -1)} = async (req, res) => {
+export const getById = async (req, res) => {
   try {
-    const item = await ${modelClass.slice(0, -1)}.findByPk(req.params.id);
+    const item = await service.getById(req.params.id);
     if (!item) return res.status(404).json({ mensaje: "No encontrado" });
     res.json(item);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ mensaje: "Error al obtener ${singular}", error });
   }
 };
 
-// UPDATE
-export const actualizar${modelClass.slice(0, -1)} = async (req, res) => {
+export const create = async (req, res) => {
   try {
-    const item = await ${modelClass.slice(0, -1)}.findByPk(req.params.id);
-    if (!item) return res.status(404).json({ mensaje: "No encontrado" });
-    await item.update(req.body);
-    res.json(item);
+    console.log("🚀 Controlador: Llamando al servicio create..."); // Añade esto
+    const nuevo = await service.create(req.body);
+    console.log("✅ Controlador: Respuesta recibida del servicio"); // Añade esto
+    res.status(201).json(nuevo);
   } catch (error) {
-    console.error(error);
+    console.log("❌ ERROR EN CONTROLADOR:", error); // Añade esto
+    res.status(500).json({ mensaje: "Error al crear ${singular}", error: error.message });
+  }
+};
+
+export const update = async (req, res) => {
+  try {
+    const actualizado = await service.update(req.params.id, req.body);
+    if (!actualizado) return res.status(404).json({ mensaje: "No encontrado" });
+    res.json(actualizado);
+  } catch (error) {
     res.status(500).json({ mensaje: "Error al actualizar ${singular}", error });
   }
 };
 
-// DELETE
-export const eliminar${modelClass.slice(0, -1)} = async (req, res) => {
+export const remove = async (req, res) => {
   try {
-    const item = await ${modelClass.slice(0, -1)}.findByPk(req.params.id);
-    if (!item) return res.status(404).json({ mensaje: "No encontrado" });
-    await item.destroy();
-    res.json({ mensaje: "${modelClass.slice(0, -1)} eliminado correctamente" });
+    const eliminado = await service.remove(req.params.id);
+    if (!eliminado) return res.status(404).json({ mensaje: "No encontrado" });
+    res.json({ mensaje: "${singular} eliminado correctamente" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ mensaje: "Error al eliminar ${singular}", error });
   }
 };
 `;
 
-  fs.writeFileSync(`${controllersPath}/${modelName}Controller.js`, controllerContent);
+  fs.writeFileSync(`${controllersBasePath}/${modelName}BaseController.js`, baseControllerContent);
+
+  // ---------- CONTROLADOR EXTENDIDO ----------
+  const controllerPath = `${controllersPath}/${modelName}Controller.js`;
+  if (!fs.existsSync(controllerPath)) {
+    const controllerContent = `// controllers/${modelName}Controller.js
+import * as Base from "./base/${modelName}BaseController.js";
+
+export const obtener${modelClass} = Base.getAll;
+export const obtener${modelClass.slice(0, -1)} = Base.getById;
+export const crear${modelClass.slice(0, -1)} = Base.create;
+export const actualizar${modelClass.slice(0, -1)} = Base.update;
+export const eliminar${modelClass.slice(0, -1)} = Base.remove;
+`;
+    fs.writeFileSync(controllerPath, controllerContent);
+  }
 
   // ---------- RUTA ----------
   const routeContent = `// routes/${modelName}Routes.js
@@ -113,7 +159,7 @@ export default router;
 `;
 
   fs.writeFileSync(`${routesPath}/${modelName}Routes.js`, routeContent);
-  console.log(`✅ CRUD generado para: ${modelName}`);
+  console.log(`✅ Estructura MVC completa generada para: ${modelName}`);
 }
 
-console.log("🎉 Todos los controladores y rutas han sido generados correctamente.");
+console.log("🎉 Todos los controladores, servicios y rutas han sido generados correctamente.");
