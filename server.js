@@ -5,6 +5,7 @@ import initModels from "./models/init-models.js";
 // Importar rutas (Añade las que te falten aquí)
 import productoRoutes from "./routes/productosRoutes.js";
 import logRoutes from "./routes/logRoutes.js";
+import log3Routes from "./routes/log3Routes.js";
 import clientesRouter from "./routes/clientesRoutes.js";
 
 const app = express();
@@ -21,6 +22,7 @@ const models = initModels(sequelize);
 // 2. RUTAS
 app.use("/api/productos", productoRoutes);
 app.use("/api/log", logRoutes);
+app.use("/api/log3", log3Routes);
 app.use("/api/clientes", clientesRouter);
 
 // 3. CONEXIÓN Y SINCRONIZACIÓN
