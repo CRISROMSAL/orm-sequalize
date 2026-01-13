@@ -13,14 +13,13 @@ fs.mkdirSync(controllersBasePath, { recursive: true });
 fs.mkdirSync(servicesPath, { recursive: true });
 fs.mkdirSync(routesPath, { recursive: true });
 
-// Filtramos solo los modelos (sin incluir init-models.js)
 const models = fs.readdirSync(modelsPath)
   .filter(f => f.endsWith(".js") && f !== "init-models.js");
 
 for (const modelFile of models) {
-  const modelName = path.basename(modelFile, ".js"); // ejemplo: productos
-  const modelClass = modelName.charAt(0).toUpperCase() + modelName.slice(1); // Productos
-  const singular = modelName.replace(/s$/, ""); // producto, cliente, pedido, etc.
+  const modelName = path.basename(modelFile, ".js"); 
+  const modelClass = modelName.charAt(0).toUpperCase() + modelName.slice(1); 
+  const singular = modelName.replace(/s$/, ""); 
 
   // ---------- SERVICIO ----------
 const serviceContent = `// services/${modelName}Service.js
