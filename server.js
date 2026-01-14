@@ -6,6 +6,7 @@ import initModels from "./models/init-models.js";
 import productoRoutes from "./routes/productosRoutes.js";
 import logRoutes from "./routes/logRoutes.js";
 import log3Routes from "./routes/log3Routes.js";
+import log14Routes from "./routes/log14Routes.js";
 import clientesRouter from "./routes/clientesRoutes.js";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/productos", productoRoutes);
 app.use("/api/log", logRoutes);
 app.use("/api/log3", log3Routes);
 app.use("/api/clientes", clientesRouter);
+app.use("/api/log14", log14Routes);
 
 // 3. CONEXIÓN Y SINCRONIZACIÓN
 const startServer = async () => {
