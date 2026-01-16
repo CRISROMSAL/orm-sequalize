@@ -1,5 +1,6 @@
 import _sequelize from "sequelize";
 const DataTypes = _sequelize.DataTypes;
+import _carlos46 from  "./carlos46.js";
 import _categorias from  "./categorias.js";
 import _clientes from  "./clientes.js";
 import _detalles_pedido from  "./detalles_pedido.js";
@@ -11,6 +12,7 @@ import _pedidos from  "./pedidos.js";
 import _productos from  "./productos.js";
 
 export default function initModels(sequelize) {
+  const carlos46 = _carlos46.init(sequelize, DataTypes);
   const categorias = _categorias.init(sequelize, DataTypes);
   const clientes = _clientes.init(sequelize, DataTypes);
   const detalles_pedido = _detalles_pedido.init(sequelize, DataTypes);
@@ -29,6 +31,7 @@ export default function initModels(sequelize) {
   productos.hasMany(detalles_pedido, { as: "detalles_pedidos", foreignKey: "producto_id"});
 
   return {
+    carlos46,
     categorias,
     clientes,
     detalles_pedido,

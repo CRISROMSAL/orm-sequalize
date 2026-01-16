@@ -9,6 +9,7 @@ import log3Routes from "./routes/log3Routes.js";
 import log14Routes from "./routes/log14Routes.js";
 import log18Routes from "./routes/log18Routes.js";
 import clientesRouter from "./routes/clientesRoutes.js";
+import carlos46Routes from "./routes/carlos46Routes.js";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.use("/api/log3", log3Routes);
 app.use("/api/clientes", clientesRouter);
 app.use("/api/log14", log14Routes);
 app.use("/api/log18", log18Routes);
+app.use("/api/carlos46", carlos46Routes);
 
 // 3. CONEXIÓN Y SINCRONIZACIÓN
 const startServer = async () => {
